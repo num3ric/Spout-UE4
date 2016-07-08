@@ -8,7 +8,7 @@ spoutSenderNames * sender;
 spoutGLDXinterop * interop;
 spoutDirectX * sdx;
 
-TArray<FSenderStruct> FSenders;
+TArray<FSpoutStruct> FSenders;
 
 UMaterialInterface* BaseMaterial;
 
@@ -75,7 +75,7 @@ void ResetMatInstance(UTexture2D*& Texture, UMaterialInstanceDynamic*& MaterialI
 	MaterialInstance->SetTextureParameterValue(TextureParameterName, Texture);
 }
 
-void ResetTexture(UTexture2D*& Texture, UMaterialInstanceDynamic*& MaterialInstance, FSenderStruct*& SenderStruct)
+void ResetTexture(UTexture2D*& Texture, FSpoutStruct*& SenderStruct)
 {
 
 	// Here we init the texture to its initial state
@@ -85,13 +85,7 @@ void ResetTexture(UTexture2D*& Texture, UMaterialInstanceDynamic*& MaterialInsta
 	Texture = UTexture2D::CreateTransient(SenderStruct->w, SenderStruct->h, PF_B8G8R8A8);
 	Texture->AddToRoot();
 	Texture->UpdateResource();
-
 	SenderStruct->Texture2DResource = (FTexture2DResource*)Texture->Resource;
-
-	////////////////////////////////////////////////////////////////////////////////
-	ResetMatInstance(Texture, MaterialInstance);
-
-
 }
 
 UTextureRenderTarget2D* USpoutBPFunctionLibrary::CreateTextureRenderTarget2D(int32 w, int32 h, EPixelFormat pixelFormat, bool forceLinearGamma) {
@@ -147,9 +141,9 @@ void USpoutBPFunctionLibrary::GetMaxSenders(int32& max) {
 }
 
 
-bool GetSpoutRegistred(FName spoutName, FSenderStruct*& SenderStruct) {
+bool GetSpoutRegistred(FName spoutName, FSpoutStruct*& SenderStruct) {
 
-	auto MyPredicate = [&](const FSenderStruct InItem) {return InItem.sName == spoutName; };
+	auto MyPredicate = [&](const FSpoutStruct InItem) {return InItem.sName == spoutName; };
 	SenderStruct = FSenders.FindByPredicate(MyPredicate);
 
 	bool bIsInListSenders = FSenders.ContainsByPredicate(MyPredicate);
@@ -158,7 +152,7 @@ bool GetSpoutRegistred(FName spoutName, FSenderStruct*& SenderStruct) {
 }
 
 void UnregisterSpout(FName spoutName) {
-	auto MyPredicate = [&](const FSenderStruct InItem) {return InItem.sName == spoutName; };
+	auto MyPredicate = [&](const FSpoutStruct InItem) {return InItem.sName == spoutName; };
 	FSenders.RemoveAll(MyPredicate);
 }
 
@@ -167,7 +161,7 @@ void ClearRegister() {
 	FSenders.Empty();
 }
 
-void RegisterReceiver(FName spoutName, FSenderStruct*& SenderStruct){
+void RegisterReceiver(FName spoutName, FSpoutStruct*& SenderStruct){
 	
 	unsigned int w;
 	unsigned int h;
@@ -176,14 +170,13 @@ void RegisterReceiver(FName spoutName, FSenderStruct*& SenderStruct){
 
 	sender->GetSenderInfo(spoutName.GetPlainANSIString(), w, h, sHandle, format);
 
-	FSenderStruct* newFSenderStruc = new FSenderStruct();
+	FSpoutStruct* newFSenderStruc = new FSpoutStruct();
 	newFSenderStruc->SetH(h);
 	newFSenderStruc->SetW(w);
 	newFSenderStruc->SetHandle(sHandle);
 	newFSenderStruc->SetName(spoutName);
 	newFSenderStruc->bIsAlive = true;
 	newFSenderStruc->spoutType = ESpoutType::Receiver;
-	newFSenderStruc->MaterialInstanceColor = nullptr;
 	newFSenderStruc->TextureColor = nullptr;
 
 	FSenders.Add(*newFSenderStruc);
@@ -193,16 +186,16 @@ void RegisterReceiver(FName spoutName, FSenderStruct*& SenderStruct){
 
 }
 
-bool USpoutBPFunctionLibrary::SpoutInfo(TArray<FSenderStruct>& Senders){
+bool USpoutBPFunctionLibrary::SpoutInfo(TArray<FSpoutStruct>& Senders){
 	Senders = FSenders;
 	return true;
 }
 
-bool USpoutBPFunctionLibrary::SpoutInfoFrom(FName spoutName, FSenderStruct& SenderStruct){
+bool USpoutBPFunctionLibrary::SpoutInfoFrom(FName spoutName, FSpoutStruct& SenderStruct){
 	
 	//Existe en mi lista ??
-	auto MyPredicate = [&](const FSenderStruct InItem) {return InItem.sName == spoutName; };
-	FSenderStruct* EncontradoSenderStruct = FSenders.FindByPredicate(MyPredicate);
+	auto MyPredicate = [&](const FSpoutStruct InItem) {return InItem.sName == spoutName; };
+	FSpoutStruct* EncontradoSenderStruct = FSenders.FindByPredicate(MyPredicate);
 
 	if (EncontradoSenderStruct == nullptr){
 		UE_LOG(SpoutLog, Warning, TEXT("No Encontrado sender con nombre : %s"), *spoutName.GetPlainNameString());
@@ -260,12 +253,12 @@ bool USpoutBPFunctionLibrary::CreateRegisterSender(FName spoutName, ID3D11Textur
 	UE_LOG(SpoutLog, Warning, TEXT("Created sender DX11 with sender name : %s"), *tmp);
 
 	// remove old sender register
-	auto MyPredicate = [&](const FSenderStruct InItem) {return InItem.sName == spoutName; };
+	auto MyPredicate = [&](const FSpoutStruct InItem) {return InItem.sName == spoutName; };
 	FSenders.RemoveAll(MyPredicate);
 
 	// add new register
 	UE_LOG(SpoutLog, Warning, TEXT("Adding Sender to Sender list"));
-	FSenderStruct* newFSenderStruc = new FSenderStruct();
+	FSpoutStruct* newFSenderStruc = new FSpoutStruct();
 	newFSenderStruc->SetW(desc.Width);
 	newFSenderStruc->SetH(desc.Height);
 	newFSenderStruc->SetName(spoutName);
@@ -274,7 +267,6 @@ bool USpoutBPFunctionLibrary::CreateRegisterSender(FName spoutName, ID3D11Textur
 	newFSenderStruc->SetHandle(sharedSendingHandle);
 	newFSenderStruc->activeTextures = sendingTexture;
 
-	newFSenderStruc->MaterialInstanceColor = nullptr;
 	newFSenderStruc->TextureColor = nullptr;
 
 	FSenders.Add(*newFSenderStruc);
@@ -285,7 +277,7 @@ bool USpoutBPFunctionLibrary::CreateRegisterSender(FName spoutName, ID3D11Textur
 
 ESpoutState CheckSenderState(FName spoutName){
 
-	auto MyPredicate = [&](const FSenderStruct InItem) {return InItem.sName == spoutName; };
+	auto MyPredicate = [&](const FSpoutStruct InItem) {return InItem.sName == spoutName; };
 	bool bIsInListSenders = FSenders.ContainsByPredicate(MyPredicate);
 
 	ESpoutState state = ESpoutState::noEnoR;
@@ -330,7 +322,7 @@ bool USpoutBPFunctionLibrary::SpoutSender(FName spoutName, ESpoutSendTextureFrom
 	}
 
 	ID3D11Texture2D* baseTexture = 0;
-	FSenderStruct* SenderStruct = 0;
+	FSpoutStruct* SenderStruct = 0;
 	
 	switch (sendTextureFrom)
 	{
@@ -421,97 +413,73 @@ bool USpoutBPFunctionLibrary::SpoutSender(FName spoutName, ESpoutSendTextureFrom
 	return result;
 }
 
-bool USpoutBPFunctionLibrary::SpoutReceiver(const FName spoutName, UMaterialInstanceDynamic*& mat)
+bool USpoutBPFunctionLibrary::SpoutReceiver( const FName spoutName, UTexture2D*& texture )
 {
 	const FString SenderNameString = spoutName.GetPlainNameString();
-	int32 Width;
-	int32 Height;
 
-	if (BaseMaterial == NULL)
-	{
-		UMaterialInterface* mBase_Material = 0;
-		mBase_Material = LoadObject<UMaterial>(NULL, TEXT("/SpoutPlugin/Materials/SpoutMaterial.SpoutMaterial"), NULL, LOAD_None, NULL);
-		BaseMaterial = mBase_Material;
-	}
-	
-	if (sender == nullptr)
-	{ 
+	if( sender == nullptr ) {
 		initSpout();
 	};
 
-	if (g_D3D11Device == nullptr || g_pImmediateContext == NULL){
-		
+	if( g_D3D11Device == nullptr || g_pImmediateContext == NULL ) {
 		GetDevice();
 	}
 
-	FSenderStruct* SenderStruct=0;
-	ESpoutState state = CheckSenderState(spoutName);
+	FSpoutStruct* SenderStruct = 0;
+	ESpoutState state = CheckSenderState( spoutName );
 
-	if (state == ESpoutState::noEnoR) {
-		UE_LOG(SpoutLog, Warning, TEXT("Not found any sender and no registred with the name %s"), *spoutName.GetPlainNameString());
-		UE_LOG(SpoutLog, Warning, TEXT("try to rename it, or resend %s"), *SenderNameString);
+	if( state == ESpoutState::noEnoR ) {
+		UE_LOG( SpoutLog, Warning, TEXT( "Not found any sender and no registred with the name %s" ), *spoutName.GetPlainNameString() );
+		UE_LOG( SpoutLog, Warning, TEXT( "try to rename it, or resend %s" ), *SenderNameString );
 		return false;
 	}
-		
-	if(state == ESpoutState::noER) {
-		UE_LOG(SpoutLog, Warning, TEXT("why are you registred??, unregistre"));
-		UnregisterSpout(spoutName);
+
+	if( state == ESpoutState::noER ) {
+		UE_LOG( SpoutLog, Warning, TEXT( "why are you registred??, unregistre" ) );
+		UnregisterSpout( spoutName );
 
 		return false;
 	}
-	if (state == ESpoutState::EnoR) {
-		UE_LOG(SpoutLog, Warning, TEXT("Sender %s found, registring, receiving..."), *spoutName.GetPlainNameString());
-		RegisterReceiver(spoutName, SenderStruct);
+	if( state == ESpoutState::EnoR ) {
+		UE_LOG( SpoutLog, Warning, TEXT( "Sender %s found, registring, receiving..." ), *spoutName.GetPlainNameString() );
+		RegisterReceiver( spoutName, SenderStruct );
 		return false;
 	}
-	if (state == ESpoutState::ER) {
+	if( state == ESpoutState::ER ) {
 
-		GetSpoutRegistred(spoutName, SenderStruct);
-		
-		if (SenderStruct->spoutType == ESpoutType::Sender) {
+		GetSpoutRegistred( spoutName, SenderStruct );
+
+		if( SenderStruct->spoutType == ESpoutType::Sender ) {
 			//UE_LOG(SpoutLog, Warning, TEXT("Receiving from sender inside ue4 with the name %s"), *spoutName.GetPlainNameString());
 		}
-		if (SenderStruct->spoutType == ESpoutType::Receiver) {
+		if( SenderStruct->spoutType == ESpoutType::Receiver ) {
 			//UE_LOG(SpoutLog, Warning, TEXT("Continue Receiver with the name %s"), *SenderName.GetPlainNameString());
-
 		}
 	}
-		
-	if (!SenderStruct->MaterialInstanceColor || SenderStruct->TextureColor == nullptr || SenderStruct->MaterialInstanceColor == nullptr)
-	{
-		
-		//TextureColor = new
-		UE_LOG(SpoutLog, Warning, TEXT("No material intance, creating...//////"));
-		// Prepara Textura, Set the texture update region
-		Width = SenderStruct->w;
-		Height = SenderStruct->h;
-		SenderStruct->UpdateRegions = new FUpdateTextureRegion2D(0, 0, 0, 0, Width, Height);
-		ResetTexture(SenderStruct->TextureColor, SenderStruct->MaterialInstanceColor, SenderStruct);
 
+	if( SenderStruct->TextureColor == nullptr ) {
+		UE_LOG( SpoutLog, Warning, TEXT( "No material intance, creating...//////" ) );
+		SenderStruct->UpdateRegions = new FUpdateTextureRegion2D( 0, 0, 0, 0, SenderStruct->w, SenderStruct->h );
+		ResetTexture( SenderStruct->TextureColor, SenderStruct );
 	}
 
-	if (SenderStruct->MaterialInstanceColor == nullptr){
-		UE_LOG(SpoutLog, Warning, TEXT("___________________________no MaterialInstanceColor nullptr"));
+	if( SenderStruct->TextureColor == nullptr ) {
+		UE_LOG( SpoutLog, Warning, TEXT( "___________________________no textureColor nullptr" ) );
 		return false;
 	}
 
-	if (SenderStruct->TextureColor == nullptr){
-		UE_LOG(SpoutLog, Warning, TEXT("___________________________no textureColor nullptr" ));
-		return false;
-	}
-	
 	ID3D11Resource * tempResource11 = nullptr;
 	ID3D11ShaderResourceView * rView = nullptr;
-	
-	HRESULT openResult = g_D3D11Device->OpenSharedResource(SenderStruct->sHandle, __uuidof(ID3D11Resource), (void**)(&tempResource11));
-	g_D3D11Device->CreateShaderResourceView(tempResource11, NULL, &rView);
+
+	HRESULT openResult = g_D3D11Device->OpenSharedResource( SenderStruct->sHandle, __uuidof(ID3D11Resource), (void**)(&tempResource11) );
+	g_D3D11Device->CreateShaderResourceView( tempResource11, NULL, &rView );
 
 	ID3D11Texture2D* tex = (ID3D11Texture2D*)tempResource11;
-	if (tex == nullptr) {
+	if( tex == nullptr ) {
 		return false;
 	}
 	D3D11_TEXTURE2D_DESC description;
-	tex->GetDesc(&description);
+	tex->GetDesc( &description );
 	description.BindFlags = 0;
 	description.Format = DXGI_FORMAT_B8G8R8A8_UNORM;
 	description.CPUAccessFlags = D3D11_CPU_ACCESS_READ | D3D11_CPU_ACCESS_WRITE;
@@ -519,65 +487,64 @@ bool USpoutBPFunctionLibrary::SpoutReceiver(const FName spoutName, UMaterialInst
 
 	ID3D11Texture2D* texTemp = NULL;
 
-	HRESULT hr = g_D3D11Device->CreateTexture2D(&description, NULL, &texTemp);
-	if (FAILED(hr))
+	HRESULT hr = g_D3D11Device->CreateTexture2D( &description, NULL, &texTemp );
+	if( FAILED( hr ) )
 	{
-		if (texTemp)
+		if( texTemp )
 		{
 			texTemp->Release();
 			texTemp = NULL;
 		}
 		//return NULL;
-		UE_LOG(SpoutLog, Error, TEXT("error creating temporal textura"));
+		UE_LOG( SpoutLog, Error, TEXT( "error creating temporal textura" ) );
 	}
-	
+
 	ENQUEUE_UNIQUE_RENDER_COMMAND_FOURPARAMETER(
 		void,
 		ID3D11Texture2D*, t_texTemp, texTemp,
 		ID3D11Texture2D*, t_tex, tex,
 		int32, Stride, SenderStruct->w * 4,
-		FSenderStruct*, Params, SenderStruct,
+		FSpoutStruct*, Params, SenderStruct,
 		{
 
-			if (Params == nullptr) {
+			if( Params == nullptr ) {
 				return;
 			}
 
-			g_pImmediateContext->CopyResource(t_texTemp, t_tex);
-			g_pImmediateContext->Flush();
-			D3D11_MAPPED_SUBRESOURCE  mapped;
-			//Gets a pointer to the data contained in a subresource, and denies the GPU access to that subresource.
-			// with CPU read permissions (D3D11_MAP_READ)
-			HRESULT hr = g_pImmediateContext->Map(t_texTemp, 0, D3D11_MAP_READ, 0, &mapped);
-			if (FAILED(hr))
-			{
-				t_texTemp->Release();
-				t_texTemp = NULL;
-				
-				UE_LOG(SpoutLog, Error, TEXT("Fallo crear mapped"));
-				return;
-			}
-			BYTE *pixel = (BYTE *)mapped.pData;
-			g_pImmediateContext->Unmap(t_texTemp, 0);
-
-			//Update Texture
-			RHIUpdateTexture2D(Params->Texture2DResource->GetTexture2DRHI(), 0, *Params->UpdateRegions, Stride, (uint8*)pixel);
-			
-			//Clean Textura Temporal
-			t_texTemp->Release();
-			t_texTemp = NULL;
-		});
-		
-	/**/
-	if (SenderStruct->MaterialInstanceColor != nullptr)
+	g_pImmediateContext->CopyResource( t_texTemp, t_tex );
+	g_pImmediateContext->Flush();
+	D3D11_MAPPED_SUBRESOURCE  mapped;
+	//Gets a pointer to the data contained in a subresource, and denies the GPU access to that subresource.
+	// with CPU read permissions (D3D11_MAP_READ)
+	HRESULT hr = g_pImmediateContext->Map( t_texTemp, 0, D3D11_MAP_READ, 0, &mapped );
+	if( FAILED( hr ) )
 	{
-		//mat = MaterialInstanceColor;
-		mat = SenderStruct->MaterialInstanceColor;
+		t_texTemp->Release();
+		t_texTemp = NULL;
+
+		UE_LOG( SpoutLog, Error, TEXT( "Fallo crear mapped" ) );
+		return;
+	}
+	BYTE *pixel = (BYTE *)mapped.pData;
+	g_pImmediateContext->Unmap( t_texTemp, 0 );
+
+	//Update Texture
+	RHIUpdateTexture2D( Params->Texture2DResource->GetTexture2DRHI(), 0, *Params->UpdateRegions, Stride, (uint8*)pixel );
+
+	//Clean Textura Temporal
+	t_texTemp->Release();
+	t_texTemp = NULL;
+		} );
+
+	/**/
+	if( SenderStruct->TextureColor != nullptr )
+	{
+		texture = SenderStruct->TextureColor;
 		return true;
 	}
-	else{
+	else {
 		//mat = static_cast<UMaterialInstanceDynamic*>(BaseMaterial);
-		mat = NULL;
+		texture = nullptr;
 		return false;
 	}
 }
@@ -614,7 +581,7 @@ void USpoutBPFunctionLibrary::CloseSender(FName spoutName)
 	}
 	if (state == ESpoutState::ER) {
 
-		FSenderStruct* tempSenderStruct = 0;
+		FSpoutStruct* tempSenderStruct = 0;
 		GetSpoutRegistred(spoutName, tempSenderStruct);
 		
 		if (tempSenderStruct->spoutType == ESpoutType::Sender) {
@@ -681,7 +648,6 @@ bool USpoutBPFunctionLibrary::UpdateRegisteredSpout(FName spoutName, ID3D11Textu
 			FSenders[Index].SetHandle(sharedSendingHandle);
 			FSenders[Index].activeTextures = sendingTexture;
 
-			FSenders[Index].MaterialInstanceColor = nullptr;
 			FSenders[Index].TextureColor = nullptr;
 
 			senderResult = true;

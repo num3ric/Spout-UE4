@@ -35,7 +35,7 @@ enum class ESpoutSendTextureFrom
 };
 
 USTRUCT()
-struct FSenderStruct
+struct FSpoutStruct
 {
 	GENERATED_USTRUCT_BODY()
 
@@ -62,9 +62,6 @@ struct FSenderStruct
 
 		UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Spout Struct")
 		UTexture2D* TextureColor;
-
-		UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Spout Struct")
-		UMaterialInstanceDynamic* MaterialInstanceColor;
 
 		// Pointer to our Texture's resource
 		FTexture2DResource* Texture2DResource;
@@ -96,7 +93,7 @@ struct FSenderStruct
 		h = NewH;
 	}
 
-	FSenderStruct(){
+	FSpoutStruct(){
 
 	}
 
@@ -113,28 +110,28 @@ public:
 	static bool CreateRegisterSender(FName spoutName, ID3D11Texture2D* baseTexture);
 
 	UFUNCTION(BlueprintCallable, Category = "Spout", meta = (AdvancedDisplay = "2"))
-		static bool SpoutSender(FName spoutName, ESpoutSendTextureFrom sendTextureFrom, UTextureRenderTarget2D* textureRenderTarget2D, float targetGamma = 2.2);
+	static bool SpoutSender(FName spoutName, ESpoutSendTextureFrom sendTextureFrom, UTextureRenderTarget2D* textureRenderTarget2D, float targetGamma = 2.2);
 
 	UFUNCTION(BlueprintCallable, Category = "Spout")
-		static void CloseSender(FName spoutName);
-
-	UFUNCTION(BlueprintCallable, Category = "Spout")
-		static bool SpoutReceiver(const FName spoutName, UMaterialInstanceDynamic*& mat);
+	static void CloseSender(FName spoutName);
+	
+	UFUNCTION( BlueprintCallable, Category = "Spout" )
+	static bool SpoutReceiver( const FName spoutName, UTexture2D*& texture );
 	
 	UFUNCTION(BlueprintCallable, Category = "Spout")
-		static bool SpoutInfo(TArray<FSenderStruct>& Senders);
+	static bool SpoutInfo(TArray<FSpoutStruct>& Senders);
 	
 	UFUNCTION(BlueprintCallable, Category = "Spout")
-		static bool SpoutInfoFrom(FName spoutName, FSenderStruct& SenderStruct);
+	static bool SpoutInfoFrom(FName spoutName, FSpoutStruct& SenderStruct);
 
 	UFUNCTION(BlueprintCallable, Category = "Spout")
-		static int32 SetMaxSenders(int32 max);
+	static int32 SetMaxSenders(int32 max);
 	
 	UFUNCTION(BlueprintCallable, Category = "Spout")
-		static void GetMaxSenders(int32& max);
+	static void GetMaxSenders(int32& max);
 
 	UFUNCTION(BlueprintCallable, Category = "Spout")
-		static UTextureRenderTarget2D* CreateTextureRenderTarget2D(int32 w=1024, int32 h=768, EPixelFormat pixelFormat= EPixelFormat::PF_B8G8R8A8, bool forceLinearGamma = true );
+	static UTextureRenderTarget2D* CreateTextureRenderTarget2D(int32 w=1024, int32 h=768, EPixelFormat pixelFormat= EPixelFormat::PF_B8G8R8A8, bool forceLinearGamma = true );
 
 	static bool UpdateRegisteredSpout(FName spoutName, ID3D11Texture2D* baseTexture);
 };
